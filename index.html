@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>確率別入力ガチャ</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      margin: 30px;
+      background-color: #f0f8ff;
+    }
+    textarea {
+      width: 300px;
+      height: 150px;
+      font-size: 16px;
+      margin: 10px;
+    }
+    button {
+      font-size: 18px;
+      padding: 10px 25px;
+      margin: 10px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #388E3C;
+    }
+    #result {
+      font-size: 22px;
+      margin-top: 30px;
+      font-weight: bold;
+      white-space: pre-line;
+    }
+    #history {
+      margin-top: 40px;
+      text-align: left;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+      background-color: #ffffff;
+      border: 1px solid #ccc;
+      padding: 15px;
+      border-radius: 10px;
+    }
+    #history h2 {
+      text-align: center;
+    }
+    .history-entry {
+      border-top: 1px dashed #aaa;
+      margin-top: 10px;
+      padding-top: 5px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>確率付きガチャ（別入力）</h1>
+
+  <div>
+    <div style="display:inline-block">
+      <p>アイテム一覧（1行ずつ）</p>
+      <textarea id="items" placeholder="アイテムを入力"></textarea>
+    </div>
+    <div style="display:inline-block">
+      <p>確率一覧（%で1行ずつ）</p>
+      <textarea id="weights" placeholder="確率を入力"></textarea>
+    </div>
+  </div>
+
+  <button onclick="drawGacha()">ガチャを引く</button>
+  <button onclick="drawMultiGacha()">10連ガチャ</button>
+  
+  <div id="result">結果：？</div>
+
+  <div id="history">
+    <h2>履歴</h2>
+    <!-- 履歴がここに追加されます -->
+  </div>
+
+  <script>
+    function parseItemsAndWeights() {
+      const itemLines = document.getElementById("items").value.trim().split("\n");
+      const weightLines = document.getElementById("weights").value.trim().split("\n");
+
+      if (itemLines.length !== weightLines.length || itemLines.length === 0) {
+        return { error: "エラー：行数が一致しないか空です。" };
+      }
+
+      const items = [];
+      let totalWeight = 0;
+
+      for (let i = 0; i < itemLines.length; i++) {
+        const name = itemLines[i].trim();
+        const weight = parseFloat(weightLines[i]);
+
+        if (!name || isNaN(weight) || weight <= 0) {
+          return { error: `エラー：${i + 1}行目に無効な値があります。` };
+        }
+
+        items.push({ name, weight });
+        totalWeight += weight;
+      }
+
+      if (Math.abs(totalWeight - 100) > 0.01) {
+        return { error: `注意：確率の合計が ${totalWeight}% です（100%ではありません）。` };
+      }
+
+      return { items, totalWeight };
+    }
+
+    function drawOne(items, totalWeight) {
+      const rand = Math.random() * totalWeight;
+      let sum = 0;
+
+      for (const item of items) {
+        sum += item.weight;
+        if (rand <= sum) {
+          return item.name;
+        }
+      }
+      return "？";
+    }
+
+    function drawGacha() {
+      const resultDiv = document.getElementById("result");
+      const { items, totalWeight, error } = parseItemsAndWeights();
+
+      if (error) {
+        resultDiv.textContent = error;
+        return;
+      }
+
+      const result = drawOne(items, totalWeight);
+      resultDiv.textContent = `結果：${result}`;
+      addToHistory([result]);
+    }
+
+    function drawMultiGacha() {
+      const resultDiv = document.getElementById("result");
+      const { items, totalWeight, error } = parseItemsAndWeights();
+
+      if (error) {
+        resultDiv.textContent = error;
+        return;
+      }
+
+      let results = [];
+      for (let i = 0; i < 10; i++) {
+        results.push(`【${i + 1}回目】${drawOne(items, totalWeight)}`);
+      }
+
+      resultDiv.textContent = "10連ガチャ結果：\n" + results.join("\n");
+      addToHistory(results);
+    }
+
+    function addToHistory(results) {
+      const history = document.getElementById("history");
+      const entry = document.createElement("div");
+      entry.className = "history-entry";
+      const timestamp = new Date().toLocaleString();
+
+      entry.innerHTML = `<strong>${timestamp}</strong><br>${results.join("<br>")}`;
+      history.insertBefore(entry, history.children[1]); // 最初の履歴の下に追加
+    }
+  </script>
+
+</body>
+</html>
